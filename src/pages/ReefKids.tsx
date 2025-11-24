@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 
 import coral1 from "../assets/desenho-coral1.png";
 import coral2 from "../assets/desenho-coral2.avif";
-import coral3 from "../assets/desenhocoral3.jpg";
+import coral3 from "../assets/desenho-coral3.jpg";
 
 const drawings = [
   { src: coral1, title: "Coral 01", imgId: 1, badgeColor: "bg-ocean-500" },
