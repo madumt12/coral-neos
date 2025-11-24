@@ -15,7 +15,7 @@ const FIXED_COLORS = [
   "#00FF00", // Verde
   "#0000FF", // Azul
   "#4B0082", // Anil
-  "#8B00FF", // Violeta
+  "#FF69B4", // rosa
   "#000000", // Preto
 ];
 
