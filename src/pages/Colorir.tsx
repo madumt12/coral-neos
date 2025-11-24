@@ -15,7 +15,7 @@ const FIXED_COLORS = [
   "#00FF00", // Verde
   "#0000FF", // Azul
   "#4B0082", // Anil
-  "#FF69B4", // rosa
+  "#FF69B4", // Rosa
   "#000000", // Preto
 ];
 
@@ -24,7 +24,6 @@ const IMAGES: Record<string, string> = {
   1: coral1,
   2: coral2,
   3: coral3,
-  // fallback local (opcional)
   uploaded: "/mnt/data/A_2D_digital_illustration_showcases_an_underwater_.png",
 };
 
@@ -139,31 +138,27 @@ const Colorir: React.FC = () => {
   const makeGradientForCtx = (ctx: CanvasRenderingContext2D) => {
     const canvas = overlayRef.current!;
     const g = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    g.addColorStop(0, "#ff0000");
-    g.addColorStop(0.2, "#ff7f00");
-    g.addColorStop(0.4, "#ffd300");
-    g.addColorStop(0.6, "#00c2a8");
-    g.addColorStop(0.8, "#3b82f6");
-    g.addColorStop(1, "#8b5cf6");
+
+    // Cores do arco-íris fixo
+    const rainbowColors = ["#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#FF69B4"];
+    rainbowColors.forEach((c, i) => g.addColorStop(i / (rainbowColors.length - 1), c));
+
     return g;
   };
 
-  // ---------------------- BALDE (respeita linhas do base e usa gradiente se ativo) ----------------------
+  // ---------------------- BALDE ----------------------
   const floodFillOverlay = (startX: number, startY: number) => {
     const base = baseRef.current!;
     const overlay = overlayRef.current!;
     const bctx = base.getContext("2d")!;
     const octx = overlay.getContext("2d")!;
 
-    // read pixels
     const baseData = bctx.getImageData(0, 0, base.width, base.height);
     const overlayData = octx.getImageData(0, 0, overlay.width, overlay.height);
 
     const width = overlay.width;
     const height = overlay.height;
-    const startIdx = (startY * width + startX) * 4;
 
-    // detect base line: pixels escuros (ajuste thresholds se necessário)
     const isBaseLine = (idx: number) => {
       const br = baseData.data[idx];
       const bg = baseData.data[idx + 1];
@@ -172,19 +167,14 @@ const Colorir: React.FC = () => {
       return ba > 200 && br < 100 && bg < 100 && bb < 100;
     };
 
-    // create combined "visible" pixel for flood decision:
-    // if base has line treat as wall color (unique), else use overlay pixel
     const combinedAt = (x: number, y: number) => {
       const i = (y * width + x) * 4;
-      if (isBaseLine(i)) {
-        return [0, 0, 0, 255]; // wall
-      }
+      if (isBaseLine(i)) return [0, 0, 0, 255];
       return [overlayData.data[i], overlayData.data[i + 1], overlayData.data[i + 2], overlayData.data[i + 3]];
     };
 
     const target = combinedAt(startX, startY);
 
-    // get fill color: if gradient active sample gradient at position, else use currentColor
     let fillRGBA: [number, number, number, number] = [0, 0, 0, 255];
     const fillRgb = hexToRgb(currentColor);
     if (!fillRgb) return;
@@ -192,7 +182,6 @@ const Colorir: React.FC = () => {
     if (!gradientActive) {
       fillRGBA = [fillRgb[0], fillRgb[1], fillRgb[2], 255];
     } else {
-      // sample gradient by drawing it into a temp canvas
       const temp = document.createElement("canvas");
       temp.width = width;
       temp.height = height;
@@ -204,22 +193,17 @@ const Colorir: React.FC = () => {
       fillRGBA = [sample[0], sample[1], sample[2], sample[3]];
     }
 
-    // quick no-op
     if (target[0] === fillRGBA[0] && target[1] === fillRGBA[1] && target[2] === fillRGBA[2] && target[3] === fillRGBA[3]) return;
 
-    // stack fill but respect base lines (walls)
     const stack: [number, number][] = [[startX, startY]];
     while (stack.length) {
       const [x, y] = stack.pop()!;
       if (x < 0 || y < 0 || x >= width || y >= height) continue;
       const idx = (y * width + x) * 4;
-
-      // if base has line here -> wall -> skip
       if (isBaseLine(idx)) continue;
 
       const comb = combinedAt(x, y);
       if (comb[0] === target[0] && comb[1] === target[1] && comb[2] === target[2] && comb[3] === target[3]) {
-        // write fill into overlay data
         overlayData.data[idx] = fillRGBA[0];
         overlayData.data[idx + 1] = fillRGBA[1];
         overlayData.data[idx + 2] = fillRGBA[2];
@@ -252,41 +236,28 @@ const Colorir: React.FC = () => {
       case "brush": {
         octx.globalCompositeOperation = "source-over";
         octx.lineWidth = size;
-        if (gradientActive) {
-          octx.strokeStyle = makeGradientForCtx(octx) as any;
-        } else {
-          octx.strokeStyle = currentColor;
-        }
+        octx.strokeStyle = gradientActive ? (makeGradientForCtx(octx) as any) : currentColor;
         break;
       }
-
-      case "fine": {
+      case "fine":
         octx.globalCompositeOperation = "source-over";
         octx.lineWidth = Math.max(1, Math.round(size / 3));
         octx.strokeStyle = currentColor;
         break;
-      }
-
-      case "marker": {
+      case "marker":
         octx.globalCompositeOperation = "source-over";
         octx.lineWidth = size * 1.6;
         octx.globalAlpha = 0.35;
         octx.strokeStyle = currentColor;
         break;
-      }
-
-      case "spray": {
+      case "spray":
         octx.globalCompositeOperation = "source-over";
         octx.fillStyle = currentColor;
         break;
-      }
-
-      case "eraser": {
+      case "eraser":
         octx.globalCompositeOperation = "destination-out";
         octx.lineWidth = size;
         break;
-      }
-
       case "bucket":
         break;
     }
@@ -295,7 +266,6 @@ const Colorir: React.FC = () => {
   const handlePointerDown = (e: React.PointerEvent) => {
     const overlay = overlayRef.current!;
     overlay.setPointerCapture(e.pointerId);
-
     const octx = overlay.getContext("2d")!;
     const pos = getPointerPos(e.clientX, e.clientY);
 
@@ -308,9 +278,8 @@ const Colorir: React.FC = () => {
 
     applySettings(octx);
 
-    if (tool === "spray") {
-      doSpray(pos.x, pos.y);
-    } else {
+    if (tool === "spray") doSpray(pos.x, pos.y);
+    else {
       octx.beginPath();
       octx.moveTo(pos.x, pos.y);
     }
@@ -323,25 +292,21 @@ const Colorir: React.FC = () => {
     const octx = overlayRef.current!.getContext("2d")!;
     const pos = getPointerPos(e.clientX, e.clientY);
 
-    if (tool === "spray") {
-      doSpray(pos.x, pos.y);
-      return;
+    if (tool === "spray") doSpray(pos.x, pos.y);
+    else {
+      octx.lineTo(pos.x, pos.y);
+      octx.stroke();
     }
-
-    octx.lineTo(pos.x, pos.y);
-    octx.stroke();
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
     const overlay = overlayRef.current!;
     const octx = overlay.getContext("2d")!;
-
     if (isDrawing) {
       octx.closePath();
       setIsDrawing(false);
       pushHistory();
     }
-
     try {
       overlay.releasePointerCapture(e.pointerId);
     } catch {}
@@ -351,15 +316,12 @@ const Colorir: React.FC = () => {
   const handleSave = () => {
     const base = baseRef.current!;
     const overlay = overlayRef.current!;
-
     const final = document.createElement("canvas");
     final.width = base.width;
     final.height = base.height;
-
     const ctx = final.getContext("2d")!;
     ctx.drawImage(base, 0, 0);
     ctx.drawImage(overlay, 0, 0);
-
     const a = document.createElement("a");
     a.download = "colorir.png";
     a.href = final.toDataURL();
@@ -374,23 +336,17 @@ const Colorir: React.FC = () => {
     redoRef.current = [];
   };
 
-  // ---------------------- TRAÇO (AUMENTAR/ DIMINUIR) ----------------------
   const increaseSize = () => setSize((s) => Math.min(200, s + 2));
   const decreaseSize = () => setSize((s) => Math.max(1, s - 2));
   const setSizeFromInput = (v: number) => setSize(Math.max(1, Math.min(200, v)));
-  
-
-  // ---------------------- GRADIENT TOGGLE ----------------------
   const toggleGradient = () => setGradientActive((g) => !g);
-
-  // ----------------------------------------------------
 
   return (
     <div className="min-h-screen px-4 py-10 max-w-6xl mx-auto text-center">
       <h1 className="text-4xl font-bold text-primary mb-6">🎨 Colorir Coral</h1>
 
-      {/* TOOLS */}
-      <div className="flex flex-wrap justify-center gap-3 mb-4">
+      {/* CORES */}
+      <div className="flex flex-wrap justify-center gap-3 mb-4 items-center">
         {FIXED_COLORS.map((c) => (
           <button
             key={c}
@@ -402,6 +358,19 @@ const Colorir: React.FC = () => {
             style={{ backgroundColor: c }}
           />
         ))}
+
+        {/* INPUT DE COR */}
+        <input
+          type="color"
+          value={currentColor}
+          onChange={(e) => {
+            setCurrentColor(e.target.value);
+            setGradientActive(false);
+          }}
+          className="w-8 h-8 p-0 border rounded"
+          title="Escolher cor"
+        />
+
         <button
           onClick={() => setGradientActive(true)}
           className={`px-3 py-1 rounded ${gradientActive ? "ring-4 ring-primary" : "bg-gray-200"}`}
@@ -410,6 +379,7 @@ const Colorir: React.FC = () => {
         </button>
       </div>
 
+      {/* TAMANHO E TOOLS */}
       <div className="flex flex-wrap justify-center gap-3 mb-6 items-center">
         <div className="flex items-center gap-2">
           <Button onClick={decreaseSize}>−</Button>
@@ -441,7 +411,6 @@ const Colorir: React.FC = () => {
         <Button onClick={() => setTool("bucket")} className={tool === "bucket" ? "bg-yellow-300" : ""}>Balde</Button>
       </div>
 
-      {/* CONTROLS */}
       <div className="flex flex-wrap justify-center gap-3 mb-4">
         <Button onClick={handleUndo}>↩ Desfazer</Button>
         <Button onClick={handleRedo}>↪ Refazer</Button>
@@ -452,7 +421,6 @@ const Colorir: React.FC = () => {
         <Button onClick={handleReset} className="bg-red-500">Reset</Button>
       </div>
 
-      {/* DESENHO — ZOOM SAFE */}
       <div
         className="relative mx-auto border rounded-lg shadow-lg bg-white"
         style={{
