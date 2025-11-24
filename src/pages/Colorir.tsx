@@ -5,7 +5,7 @@ import { HexColorPicker } from "react-colorful";
 
 import coral1 from "../assets/desenho-coral1.png";
 import coral2 from "../assets/desenho-coral2.avif";
-import coral3 from "../assets/desenho-coral3.jpg";
+import coral3 from "../assets/desenhocoral3.jpg";
 
 type Tool = "brush" | "fine" | "marker" | "spray" | "eraser" | "bucket";
 
