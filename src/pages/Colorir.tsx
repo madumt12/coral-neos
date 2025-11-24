@@ -9,16 +9,14 @@ import coral3 from "../assets/desenho-coral3.jpg";
 type Tool = "brush" | "fine" | "marker" | "spray" | "eraser" | "bucket";
 
 const FIXED_COLORS = [
-  "#ff7b00",
-  "#ff2d95",
-  "#ffd300",
-  "#00c2a8",
-  "#3b82f6",
-  "#8b5cf6",
-  "#f97316",
-  "#ef4444",
-  "#10b981",
-  "#f59e0b",
+  "#FF0000", // Vermelho
+  "#FF7F00", // Laranja
+  "#FFFF00", // Amarelo
+  "#00FF00", // Verde
+  "#0000FF", // Azul
+  "#4B0082", // Anil
+  "#8B00FF", // Violeta
+  "#000000", // Preto
 ];
 
 // imagens controladas apenas pelo ReefKids
